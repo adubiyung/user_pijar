@@ -12,6 +12,7 @@ class BaseUrl{
   static const String LOTMAP = URL + "api/lotmapact";
   static const String FEATURE = URL + "api/pfeatureact";
   static const String TRANSACTION = URL + "api/usertransaction";
+  static const String STATUSQR = URL + "api/statusqr";
   static const String ESTIMATE = URL + "api/orderact";
   static const String GETTIME = URL + "api/gettime";
   static const String VOUCHER = URL + "api/voucheract";

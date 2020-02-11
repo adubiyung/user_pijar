@@ -11,6 +11,7 @@ import 'package:user_pijar/services/api.dart';
 import 'package:user_pijar/views/pages/topup_page.dart';
 import 'package:user_pijar/views/pages/voucher_page.dart';
 import 'package:user_pijar/views/widget/color_library.dart';
+import 'package:user_pijar/views/widget/dialog_preview_ticket.dart';
 import 'package:user_pijar/views/widget/dialog_select_vehicle.dart';
 import 'package:user_pijar/views/widget/pop_result.dart';
 import 'package:user_pijar/views/widget/session_manager.dart';
@@ -66,6 +67,8 @@ class _BookingPageState extends State<BookingPage> {
   String detailID = '';
   String detailName = '';
   String lotID = '';
+  String tcode = '';
+  String endTime = '';
 
   Future<Null> _fetchData() async {
     final _prefs = await SharedPreferences.getInstance();
@@ -392,7 +395,6 @@ class _BookingPageState extends State<BookingPage> {
     );
 
     Widget _thirdColumnWidget = new Card(
-      // margin: EdgeInsets.only(right: 10.0, left: 10.0),
       child: Container(
         height: 70.0,
         child: Row(
@@ -585,18 +587,37 @@ class _BookingPageState extends State<BookingPage> {
     Widget _compileBottomWidget = new Center(
       child: new SingleChildScrollView(
         child: new Container(
-          // margin: EdgeInsets.only(top: 50.0),
           color: ColorLibrary.backgroundDark,
-          child: new Column(
+          child: Stack(
             children: <Widget>[
-              SizedBox(
-                height: 10.0,
+              AbsorbPointer(
+                absorbing: loading,
+                child: new Column(
+                  children: <Widget>[
+                    SizedBox(
+                      height: 10.0,
+                    ),
+                    _locationWidget,
+                    _firstColumnWidget,
+                    _secondColumnWidget,
+                    _thirdColumnWidget,
+                    _billingWidget,
+                  ],
+                ),
               ),
-              _locationWidget,
-              _firstColumnWidget,
-              _secondColumnWidget,
-              _thirdColumnWidget,
-              _billingWidget,
+              Visibility(
+                visible: loading,
+                child: Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: CircularProgressIndicator(
+                      backgroundColor: ColorLibrary.primary,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(ColorLibrary.secondary),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -651,9 +672,11 @@ class _BookingPageState extends State<BookingPage> {
     String featureTypeId = '2';
 
     var time = new DateTime.now().add(new Duration(minutes: duration));
-    String endTime = _serverFormat.format(time);
 
-    String tcode = '$_selectedVehicleID${widget.model.locationID}$millis';
+    setState(() {
+      endTime = _serverFormat.format(time);
+      tcode = '$_selectedVehicleID${widget.model.locationID}$millis';
+    });
     String body = '''{
       "method": "booking", "transaction_code": "$tcode", "user_id": "$userID", "vehicle_id": "$_selectedVehicleID",
       "vehicle_type_id": "$_selectedVehicleType", "feature_id": "$featureID", "feature_type_id": "$featureTypeId", "location_id": "${widget.model.locationID}",
@@ -669,8 +692,10 @@ class _BookingPageState extends State<BookingPage> {
     final response = await client.post(url,
         headers: {HttpHeaders.authorizationHeader: token}, body: body);
     if (response.statusCode == 200) {
+      setState(() {
+        loading = false;
+      });
       var jsonObject = json.decode(response.body);
-
       int status = jsonObject['status'];
       if (status == 200) {
         Fluttertoast.showToast(
@@ -678,6 +703,7 @@ class _BookingPageState extends State<BookingPage> {
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.CENTER,
         );
+        _navigatePreviewTicket(context);
       } else {
         _dialogInfo();
       }
@@ -812,5 +838,31 @@ class _BookingPageState extends State<BookingPage> {
       opaque: true,
       pageBuilder: (context, _, __) => new TopupPage(),
     ));
+  }
+
+  _navigatePreviewTicket(BuildContext context) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => new DialogPreviewTicket(
+          transCode: tcode,
+          locationName: widget.model.locationName,
+          locationAddress: widget.model.locationAddress +
+              ", " +
+              widget.model.locationDistrict +
+              ", " +
+              widget.model.locationProvince,
+          locationCity: widget.model.locationCity,
+          startTime: dateServer,
+          endTime: endTime,
+          duration: duration,
+          voucherName: _voucherName,
+          voucherNominal: voucherTemp.round(),
+          parkingFare: billing,
+          totalBilling: finalBilling,
+        ),
+        fullscreenDialog: true
+      ),
+    );
   }
 }

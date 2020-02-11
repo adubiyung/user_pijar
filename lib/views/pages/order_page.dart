@@ -53,7 +53,6 @@ class _OrderPageState extends State<OrderPage> {
         headers: {HttpHeaders.authorizationHeader: token});
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      print('orderlist $data');
       if (mounted) {
         setState(() {
           _listData.clear();

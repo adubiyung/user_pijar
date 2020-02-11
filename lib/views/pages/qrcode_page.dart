@@ -17,8 +17,6 @@ class QrcodePage extends StatelessWidget {
     int nol = 0;
     String nolUser = '';
     String nolVehicle = '';
-    String nolVehType = '';
-    String nolFeatType = '';
 
     for (var i = userID.length; i < 7; i++) {
       nolUser += nol.toString();

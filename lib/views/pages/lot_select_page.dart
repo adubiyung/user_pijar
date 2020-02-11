@@ -62,14 +62,14 @@ class _LotSelectPageState extends State<LotSelectPage> {
             if (LotModel.fromJson(i).sideID == 1) {
               _listModelLeft.add(LotModel.fromJson(i));
               _listLabelLeft.add(LotModel.fromJson(i).detailLotID.toString());
-              if (!LotModel.fromJson(i).isAvailable) {
+              if (LotModel.fromJson(i).isAvailable == 0) {
                 _listDisableLeft
                     .add(LotModel.fromJson(i).detailLotID.toString());
               }
             } else {
               _listModelRight.add(LotModel.fromJson(i));
               _listLabelRight.add(LotModel.fromJson(i).detailLotID.toString());
-              if (!LotModel.fromJson(i).isAvailable) {
+              if (LotModel.fromJson(i).isAvailable == 0) {
                 _listDisableRight
                     .add(LotModel.fromJson(i).detailLotID.toString());
               }
@@ -208,28 +208,53 @@ class _LotSelectPageState extends State<LotSelectPage> {
                         splashColor: Colors.blueAccent,
                         onTap: () {
                           setState(() {
-                            // _listModelLeft.forEach(
-                            //     (element) => element.isAvailable = true);
+                            // check apakah sudah pernah pilih sebelumnya
                             if (_checkedLeft.isNotEmpty) {
-                              // set clear
-                              _listModelLeft[int.parse(_checkedLeft[0])]
-                                  .isAvailable = true;
-                              _checkedLeft.clear();
-                              // set new
-                              _listModelLeft[index].isAvailable = false;
-                              _checkedLeft.add(index.toString());
-                              _selectedID =
-                                  _listModelLeft[index].detailLotID.toString();
+                              // check apakah yang dipilih bukan yang statusnya not available
+                              if (!_listDisableLeft.contains(
+                                  _listModelLeft[index]
+                                      .detailLotID
+                                      .toString())) {
+                                // set clear
+                                _listModelLeft[int.parse(_checkedLeft[0])]
+                                    .isAvailable = 1;
+                                _checkedLeft.clear();
+
+                                // set new
+                                _listModelLeft[index].isAvailable = 2;
+                                _checkedLeft.add(index.toString());
+                                _selectedID = _listModelLeft[index]
+                                    .detailLotID
+                                    .toString();
+                              } else {
+                                // set clear
+                                _listModelLeft[int.parse(_checkedLeft[0])]
+                                    .isAvailable = 1;
+                                _checkedLeft.clear();
+                                // set new
+                                print("masuk 2");
+                                _listModelLeft[index].isAvailable = 0;
+                                _checkedLeft.add(index.toString());
+                                _selectedID = _listModelLeft[index]
+                                    .detailLotID
+                                    .toString();
+                              }
                             } else {
-                              _listModelLeft[index].isAvailable = false;
-                              _checkedLeft.add(index.toString());
-                              _selectedID =
-                                  _listModelLeft[index].detailLotID.toString();
+                              if (!_listDisableLeft.contains(
+                                  _listModelLeft[index]
+                                      .detailLotID
+                                      .toString())) {
+                                _listModelLeft[index].isAvailable = 2;
+                                _checkedLeft.add(index.toString());
+                                _selectedID = _listModelLeft[index]
+                                    .detailLotID
+                                    .toString();
+                              }
                             }
                             //set selected other side clear
                             if (_checkedRight.isNotEmpty) {
                               _listModelRight[int.parse(_checkedRight[0])]
-                                  .isAvailable = true;
+                                  .isAvailable = 1;
                               _checkedRight.clear();
                             }
                           });
@@ -254,28 +279,49 @@ class _LotSelectPageState extends State<LotSelectPage> {
                         splashColor: Colors.blueAccent,
                         onTap: () {
                           setState(() {
-                            // _listModelRight.forEach(
-                            //     (element) => element.isAvailable = true);
                             if (_checkedRight.isNotEmpty) {
-                              // set clear
-                              _listModelRight[int.parse(_checkedRight[0])]
-                                  .isAvailable = true;
-                              _checkedRight.clear();
-                              // set new
-                              _listModelRight[index].isAvailable = false;
-                              _checkedRight.add(index.toString());
-                              _selectedID =
-                                  _listModelRight[index].detailLotID.toString();
+                              if (!_listDisableRight.contains(
+                                  _listModelRight[index]
+                                      .detailLotID
+                                      .toString())) {
+                                // set clear
+                                _listModelRight[int.parse(_checkedRight[0])]
+                                    .isAvailable = 1;
+                                _checkedRight.clear();
+                                // set new
+                                _listModelRight[index].isAvailable = 2;
+                                _checkedRight.add(index.toString());
+                                _selectedID = _listModelRight[index]
+                                    .detailLotID
+                                    .toString();
+                              } else {
+                                // set clear
+                                _listModelRight[int.parse(_checkedRight[0])]
+                                    .isAvailable = 1;
+                                _checkedRight.clear();
+                                // set new
+                                _listModelRight[index].isAvailable = 0;
+                                _checkedRight.add(index.toString());
+                                _selectedID = _listModelRight[index]
+                                    .detailLotID
+                                    .toString();
+                              }
                             } else {
-                              _listModelRight[index].isAvailable = false;
-                              _checkedRight.add(index.toString());
-                              _selectedID =
-                                  _listModelRight[index].detailLotID.toString();
+                              if (!_listDisableRight.contains(
+                                  _listModelRight[index]
+                                      .detailLotID
+                                      .toString())) {
+                                _listModelRight[index].isAvailable = 2;
+                                _checkedRight.add(index.toString());
+                                _selectedID = _listModelRight[index]
+                                    .detailLotID
+                                    .toString();
+                              }
                             }
                             //set selected other side clear
                             if (_checkedLeft.isNotEmpty) {
                               _listModelLeft[int.parse(_checkedLeft[0])]
-                                  .isAvailable = true;
+                                  .isAvailable = 1;
                               _checkedLeft.clear();
                             }
                           });
@@ -348,94 +394,6 @@ class _LotSelectPageState extends State<LotSelectPage> {
   }
 }
 
-// Expanded(
-//                       child: Row(
-//                         children: <Widget>[
-//                           Expanded(
-//                             flex: 2,
-//                             child: ListView(
-//                               children: <Widget>[
-//                                 CheckboxGroup(
-//                                   activeColor: ColorLibrary.secondary,
-//                                   labels: _listLabelLeft,
-//                                   disabled: _listDisableLeft,
-//                                   checked: _checkedLeft,
-//                                   onChange: (bool isChecked, String label,
-//                                           int index) =>
-//                                       print(
-//                                           "isChecked: $isChecked   label: $label  index: $index"),
-//                                   onSelected: (List selected) => setState(() {
-//                                     if (selected.length > 1) {
-//                                       selected.removeAt(0);
-//                                       _checkedRight.clear();
-//                                       print(
-//                                           'selected length  ${selected.length}');
-//                                     } else {
-//                                       print("only one");
-//                                       _checkedRight.clear();
-//                                     }
-//                                     _checkedLeft = selected;
-//                                     _selectedID = selected[0].toString();
-//                                   }),
-//                                 )
-//                               ],
-//                             ),
-//                           ),
-//                           Expanded(
-//                             flex: 2,
-//                             child: ListView(
-//                               children: <Widget>[
-//                                 CheckboxGroup(
-//                                   labels: _listLabelRight,
-//                                   disabled: _listDisableRight,
-//                                   checked: _checkedRight,
-//                                   onChange: (bool isChecked, String label,
-//                                           int index) =>
-//                                       _selectedID = label,
-//                                   onSelected: (List selected) => setState(() {
-//                                     if (selected.length > 1) {
-//                                       selected.removeAt(0);
-//                                       print(
-//                                           'selected length  ${selected.length}');
-//                                       _checkedLeft.clear();
-//                                     } else {
-//                                       _checkedLeft.clear();
-//                                       print("only one");
-//                                     }
-//                                     _checkedRight = selected;
-//                                     _selectedID = selected[0].toString();
-//                                   }),
-//                                 )
-//                               ],
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                     ),
-//                     Expanded(
-//                       child: Align(
-//                         alignment: Alignment.bottomCenter,
-//                         child: RaisedButton(
-//                           child: Text("Choose"),
-//                           onPressed: () {
-//                             Navigator.of(context).pop(
-//                               PopWithResults(
-//                                 fromPage: 'lotmap',
-//                                 toPage: 'booking',
-//                                 results: {
-//                                   "lotID": _selectedID,
-//                                   "detailLocID": detailID,
-//                                   "detailName": detailName
-//                                 },
-//                               ),
-//                             );
-//                           },
-//                         ),
-//                       ),
-//                     ),
-//                   ],
-//                 )
-
 class RadioItem extends StatelessWidget {
   final LotModel _item;
   RadioItem(this._item);
@@ -454,7 +412,7 @@ class RadioItem extends StatelessWidget {
             child: new Center(
               child: new Text(_item.detailLotID.toString(),
                   style: new TextStyle(
-                      color: _item.isAvailable
+                      color: (_item.isAvailable == 1)
                           ? ColorLibrary.regularFontWhite
                           : ColorLibrary.primaryDark,
                       //fontWeight: FontWeight.bold,
@@ -462,8 +420,9 @@ class RadioItem extends StatelessWidget {
                       fontFamily: 'Work Sans')),
             ),
             decoration: new BoxDecoration(
-              color:
-                  _item.isAvailable ? Colors.transparent : ColorLibrary.primary,
+              color: (_item.isAvailable == 1)
+                  ? Colors.transparent
+                  : ColorLibrary.primary,
               border: new Border.all(width: 1.0, color: ColorLibrary.primary),
               borderRadius: const BorderRadius.all(const Radius.circular(2.0)),
             ),

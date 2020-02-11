@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_money_formatter/flutter_money_formatter.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:user_pijar/models/getTransaction.dart';
 import 'package:user_pijar/services/api.dart';
 import 'package:user_pijar/views/pages/voucher_page.dart';
@@ -15,15 +16,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:http/http.dart' as http;
 
-class CheckoutTicketPage extends StatefulWidget {
+class CheckinTicketPage extends StatefulWidget {
   final DataTransaction modelTrans;
 
-  const CheckoutTicketPage({Key key, this.modelTrans}) : super(key: key);
+  const CheckinTicketPage({Key key, this.modelTrans}) : super(key: key);
   @override
-  _CheckoutTicketPageState createState() => _CheckoutTicketPageState();
+  _CheckinTicketPageState createState() => _CheckinTicketPageState();
 }
 
-class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
+class _CheckinTicketPageState extends State<CheckinTicketPage> {
   SessionManager _session;
   HashMap<String, String> userData;
 
@@ -31,7 +32,6 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
   String checkout = '';
   String duration = '';
   int fare = 0;
-  int penalty = 0;
   int billing = 0;
   String _voucherID = "";
   String _voucherName = "";
@@ -45,9 +45,7 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
   void _showModalQR(context) {
     String transCode = widget.modelTrans.transactionCode;
     int transID = widget.modelTrans.transactionID;
-    String methodCode = '3';
-
-    _updateStatus();
+    String methodCode = "2";
 
     showModalBottomSheet(
         context: context,
@@ -63,15 +61,32 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
     String token = userData['USER_TOKEN'];
     String url = BaseUrl.STATUSQR;
     var client = new http.Client();
+    print(url);
     String _body =
         '{"method": "turnON", "transaction_id":"${widget.modelTrans.transactionID}"}';
+    print(_body);
 
     setState(() {
       loading = true;
     });
 
-    await client.post(url,
+    final response = await client.post(url,
         headers: {HttpHeaders.authorizationHeader: token}, body: _body);
+    print(response.statusCode);
+    if (response.statusCode == 200) {
+      final jsonObject = jsonDecode(response.body);
+      if (jsonObject['status'] == 200) {
+        _showModalQR(context);
+      } else {
+        Fluttertoast.showToast(
+            msg: "Opss.. Something wrong",
+            gravity: ToastGravity.BOTTOM,
+            toastLength: Toast.LENGTH_SHORT);
+      }
+      setState(() {
+        loading = false;
+      });
+    }
   }
 
   Future<Null> _fetchData() async {
@@ -81,8 +96,6 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
     userData = _session.getUserSession();
     userID = userData['USER_ID'];
     String token = userData['USER_TOKEN'];
-    int startPrice = widget.modelTrans.startPrice;
-    int nextPrice = widget.modelTrans.nextPrice;
 
     if (mounted) {
       setState(() {
@@ -99,136 +112,32 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
       setState(() {
         loading = false;
 
-        DateTime keluarDate;
-        DateTime masukDate;
+        DateTime keluarDate = DateTime.parse(datetimeOut);
+        DateTime masukDate = DateTime.parse(widget.modelTrans.startTime);
         String timeServer = jsonObject['data'];
         DateTime waktuServer = DateTime.parse(timeServer);
 
-        masukDate = DateTime.parse(widget.modelTrans.checkinTime);
-        datetimeOut = timeServer;
-        keluarDate = DateTime.parse(datetimeOut);
+        datetimeOut = widget.modelTrans.endTime;
 
-        int inMinutes = masukDate.difference(keluarDate).inMinutes.abs();
-
+        int inMinutes = widget.modelTrans.totalDuration;
         String convertJam = (inMinutes / 60).toString();
         String jam = convertJam.split('.')[0];
         String menit = (inMinutes % (60)).toString();
         duration = '${jam}h ${menit}m';
-
-        var hour = int.parse(jam);
         var min = int.parse(menit);
-        int nextJam = hour - 1;
         if (min > 5) {
           setState(() {
-            fare = (1 * startPrice) + (nextJam * nextPrice) + nextPrice;
+            fare = widget.modelTrans.parkingBilling;
             billing = fare;
           });
         } else {
           setState(() {
-            fare = (1 * startPrice) + (nextJam * nextPrice);
+            fare = widget.modelTrans.parkingBilling;
             billing = fare;
           });
         }
       });
     }
-  }
-
-  Future<Null> _checkData() async {
-    String url = BaseUrl.GETTIME;
-    final _prefs = await SharedPreferences.getInstance();
-    _session = new SessionManager(_prefs);
-    userData = _session.getUserSession();
-    String token = userData['USER_TOKEN'];
-    int startPrice = widget.modelTrans.startPrice;
-    int nextPrice = widget.modelTrans.nextPrice;
-
-    if (mounted) {
-      setState(() {
-        loading = true;
-      });
-    }
-
-    final response = await http
-        .get("$url", headers: {HttpHeaders.authorizationHeader: token});
-
-    if (response.statusCode == 200) {
-      final jsonObject = jsonDecode(response.body);
-
-      setState(() {
-        datetimeOut = jsonObject['data'];
-        DateTime keluarDate = DateTime.parse(datetimeOut);
-        DateTime masukDate = DateTime.parse(widget.modelTrans.checkinTime);
-        int inMinutes = masukDate.difference(keluarDate).inMinutes.abs();
-        loading = false;
-        String jam = (inMinutes / 60).toString().substring(0, 1);
-        String menit = (inMinutes % (60)).toString();
-        duration = '${jam}h ${menit}m';
-
-        var hour = int.parse(jam);
-        var min = int.parse(menit);
-        int nextJam = hour - 1;
-        if (min > 5) {
-          int harga = (1 * startPrice) + (nextJam * nextPrice) + nextPrice;
-          if (harga != fare) {
-            setState(() {
-              fare = harga;
-              billing = harga;
-            });
-            _dialogWarning();
-          } else {
-            _showModalQR(context);
-          }
-        } else {
-          int harga = (1 * startPrice) + (nextJam * nextPrice);
-          if (harga != fare) {
-            setState(() {
-              fare = harga;
-              billing = harga;
-            });
-            _dialogWarning();
-          } else {
-            _showModalQR(context);
-          }
-        }
-      });
-    }
-  }
-
-  void _dialogWarning() {
-    AwesomeDialog(
-      context: context,
-      dialogType: DialogType.ERROR,
-      animType: AnimType.SCALE,
-      body: new Container(
-        child: Column(
-          children: <Widget>[
-            new Center(
-              child: new Text(
-                "Ooops !",
-                style: TextStyle(
-                  fontFamily: 'Work Sans',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 25,
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 10.0,
-            ),
-            new Container(
-              margin: EdgeInsets.only(left: 10.0, right: 10.0),
-              child: Text(
-                "There is price changes",
-                style: TextStyle(fontFamily: 'Work Sans'),
-              ),
-            ),
-          ],
-        ),
-      ),
-      btnOkText: "OK",
-      btnOkOnPress: () {},
-      dismissOnTouchOutside: false,
-    ).show();
   }
 
   @override
@@ -266,7 +175,8 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
     );
 
     List<String> splitIn = [];
-    var datein = widget.modelTrans.checkinTime;
+    var datein = widget.modelTrans.startTime;
+
     splitIn = datein.split("T");
     String tglin = splitIn[0];
     String combineIn = splitIn[0] + " " + splitIn[1];
@@ -393,7 +303,7 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
           color: ColorLibrary.primary,
         ),
         title: Text(
-          (_voucherName.isEmpty) ? "Gunakan voucher" : _voucherName,
+          (_voucherName.isEmpty) ? " - " : _voucherName,
           style:
               TextStyle(fontFamily: 'Work Sans', color: ColorLibrary.primary),
         ),
@@ -401,16 +311,20 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Text(
-              "choose",
+              fmf
+                  .copyWith(
+                      amount: widget.modelTrans.voucherNominal.toDouble(),
+                      symbol: 'Rp',
+                      thousandSeparator: '.',
+                      decimalSeparator: ',',
+                      fractionDigits: 0)
+                  .output
+                  .symbolOnLeft,
               style: TextStyle(
                   fontFamily: 'Work Sans', color: ColorLibrary.primary),
             ),
-            Icon(Icons.more_vert)
           ],
         ),
-        onTap: () {
-          _navigateVoucherPage(context);
-        },
       ),
     );
 
@@ -424,7 +338,7 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
             color: ColorLibrary.primary,
           ),
           title: Text(
-            "Cash",
+            "Link Aja",
             style:
                 TextStyle(fontFamily: 'Work Sans', color: ColorLibrary.primary),
           ),
@@ -444,66 +358,8 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
                 style: TextStyle(
                     fontFamily: 'Work Sans', color: ColorLibrary.primary),
               ),
-              Icon(Icons.more_vert)
             ],
           )),
-    );
-
-    Widget _penaltyInfo = new Container(
-      padding: EdgeInsets.all(20.0),
-      color: Colors.white,
-      child: new Column(
-        children: <Widget>[
-          Align(
-            alignment: Alignment.topLeft,
-            child: Text(
-              "Detail Penalty",
-              style: TextStyle(fontFamily: 'Work Sans', fontSize: 10),
-            ),
-          ),
-          SizedBox(
-            height: 5.0,
-          ),
-          Row(
-            children: <Widget>[
-              SizedBox(
-                width: 13.0,
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      "Penalty Time ()",
-                      style: TextStyle(
-                          fontFamily: 'Work Sans',
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold),
-                    )
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: <Widget>[
-                    Text(
-                      "Rp 0",
-                      style: TextStyle(
-                          fontFamily: 'Work Sans',
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold),
-                    )
-                  ],
-                ),
-              ),
-              SizedBox(
-                width: 15.0,
-              ),
-            ],
-          ),
-        ],
-      ),
     );
 
     Widget _paymentDetailContent = new Container(
@@ -537,23 +393,6 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
                         fontFamily: 'Work Sans',
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(
-                      height: 5.0,
-                    ),
-                    Visibility(
-                      visible:
-                          (widget.modelTrans.featureType.featureTypeID == 2)
-                              ? true
-                              : false,
-                      child: Text(
-                        'Penalty',
-                        style: TextStyle(
-                          fontFamily: 'Work Sans',
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
                       ),
                     ),
                     SizedBox(
@@ -602,31 +441,6 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
                         fontFamily: 'Work Sans',
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Container(
-                      height: 5.0,
-                    ),
-                    Visibility(
-                      visible:
-                          (widget.modelTrans.featureType.featureTypeID == 2)
-                              ? true
-                              : false,
-                      child: Text(
-                        fmf
-                            .copyWith(
-                                amount: penalty.toDouble(),
-                                symbol: 'Rp',
-                                thousandSeparator: '.',
-                                decimalSeparator: ',',
-                                fractionDigits: 0)
-                            .output
-                            .symbolOnLeft,
-                        style: TextStyle(
-                          fontFamily: 'Work Sans',
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
                       ),
                     ),
                     Container(
@@ -682,7 +496,7 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
       ),
     );
 
-    Widget _checkOutContent = new Container(
+    Widget _checkInContent = new Container(
       color: Colors.white,
       child: Padding(
         padding: EdgeInsets.all(15.0),
@@ -714,11 +528,11 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
                   ),
                   color: ColorLibrary.secondary,
                   child: Text(
-                    "Check Out",
+                    "Check in",
                     style: TextStyle(fontFamily: 'Work Sans'),
                   ),
                   onPressed: () {
-                    _checkData();
+                    _updateStatus();
                   },
                 ),
               ),
@@ -791,13 +605,6 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
                     ),
                     _paymentTypeContent,
                     SizedBox(
-                      height: 2.0,
-                    ),
-                    Visibility(
-                      visible: widget.modelTrans.featureType.featureTypeID == 2,
-                      child: _penaltyInfo,
-                    ),
-                    SizedBox(
                       height: 3.0,
                     ),
                     _paymentDetailContent,
@@ -809,7 +616,7 @@ class _CheckoutTicketPageState extends State<CheckoutTicketPage> {
               ),
             ),
       bottomSheet: Container(
-        child: _checkOutContent,
+        child: _checkInContent,
         height: MediaQuery.of(context).size.height / 5,
         decoration: BoxDecoration(boxShadow: [
           BoxShadow(

@@ -41,7 +41,6 @@ class _OtpState extends State<OtpPage> with SingleTickerProviderStateMixin {
   int _fifthDigit;
   int _sixthDigit;
 
-  Timer timer;
   int totalTimeInSeconds;
   bool _hideResendButton;
   bool _hideErrorLabel = true;

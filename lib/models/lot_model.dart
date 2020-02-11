@@ -8,7 +8,7 @@ class LotModel {
   final int locationID;
   final int sideID;
   final bool isBooking;
-   bool isAvailable;
+  int isAvailable;
   final Function onChange;
 
   LotModel({

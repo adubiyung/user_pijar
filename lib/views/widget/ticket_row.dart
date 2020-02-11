@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:user_pijar/models/getTransaction.dart';
+import 'package:user_pijar/views/pages/checkin_ticket_page.dart';
 import 'package:user_pijar/views/pages/checkout_ticket_page.dart';
 import 'package:user_pijar/views/pages/detail_ticket_page.dart';
 import 'package:user_pijar/views/widget/color_library.dart';
@@ -13,18 +14,27 @@ class TicketRow extends StatelessWidget {
   Widget build(BuildContext context) {
     _navigateDetailTicket(BuildContext context) async {
       if (model.transactionStatus < 4) {
-        print('masuk checkout ${model.transactionStatus}');
-        await Navigator.push(
+        if(selectedType == 1) {
+          await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => new CheckoutTicketPage(
-              modelTrans: model, selectedType: selectedType,
+              modelTrans: model,
             ),
           ),
         );
+        } else {
+          await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => new CheckinTicketPage(
+              modelTrans: model,
+            ),
+          ),
+        );
+        }
       } else {
-        //history
-        print('masuk history ${model.transactionStatus}');
+        //history page
         await Navigator.push(
           context,
           MaterialPageRoute(

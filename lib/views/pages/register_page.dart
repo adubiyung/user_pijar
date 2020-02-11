@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:user_pijar/services/api.dart';
 import 'package:user_pijar/views/pages/login_page.dart';
 import 'package:user_pijar/views/pages/otp_page.dart';
@@ -29,6 +30,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _nameValidate = false;
   bool _emailValidate = false;
   bool _phoneValidate = false;
+  var loading = false;
 
   @override
   void initState() {
@@ -62,199 +64,219 @@ class _RegisterPageState extends State<RegisterPage> {
         elevation: 10.0,
         child: Padding(
           padding: const EdgeInsets.all(20.0),
-          child: Column(
+          child: Stack(
             children: <Widget>[
-              Container(
-                alignment: Alignment.center,
-                width: double.infinity,
-                child: Text(
-                  'Daftar Baru',
-                  style: TextStyle(
-                      fontSize: 18.0,
-                      color: ColorLibrary.regularFontBlack,
-                      fontFamily: 'Work Sans'),
+              Visibility(
+                visible: loading,
+                child: Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: CircularProgressIndicator(
+                      backgroundColor: ColorLibrary.primary,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(ColorLibrary.secondary),
+                    ),
+                  ),
                 ),
               ),
-              Column(
-                children: <Widget>[
-                  Form(
-                    key: _nameKey,
-                    autovalidate: _nameValidate,
-                    child: TextFormField(
-                      onTap: () {
-                        _emailFocus.unfocus();
-                        _phoneFocus.unfocus();
-                        FocusScope.of(context).requestFocus(_nameFocus);
-                      },
-                      controller: _nameCon,
-                      textInputAction: TextInputAction.next,
-                      keyboardType: TextInputType.text,
-                      validator: (value) => _validateName(value),
-                      focusNode: _nameFocus,
-                      onFieldSubmitted: (term) {
-                        FocusScope.of(context).requestFocus(_emailFocus);
-                        setState(() {
-                          _nameValidate = true;
-                        });
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'Nama Lengkap',
-                        icon: Icon(
-                          Icons.perm_identity,
-                          color: _nameFocus.hasFocus
-                              ? ColorLibrary.primary
-                              : Colors.grey,
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: ColorLibrary.primary),
-                        ),
-                        labelStyle: TextStyle(
-                            color: _nameFocus.hasFocus
-                                ? ColorLibrary.primary
-                                : Colors.grey),
-                        suffixIcon: CircleIconButton(
-                          onHide: _nameFocus.hasFocus ? true : false,
-                          onPressed: () {
-                            this.setState(() {
-                              _nameCon.clear();
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                  Form(
-                    key: _emailKey,
-                    autovalidate: _emailValidate,
-                    child: TextFormField(
-                      controller: _emailCon,
-                      textInputAction: TextInputAction.next,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) => _validateEmail(value),
-                      focusNode: _emailFocus,
-                      onTap: () {
-                        _nameFocus.unfocus();
-                        _phoneFocus.unfocus();
-                        FocusScope.of(context).requestFocus(_emailFocus);
-                      },
-                      onFieldSubmitted: (term) {
-                        _fieldFocusChange(context, _emailFocus, _phoneFocus);
-                        setState(() {
-                          _emailValidate = true;
-                        });
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        labelStyle: TextStyle(
-                            color: _emailFocus.hasFocus
-                                ? ColorLibrary.primary
-                                : Colors.grey),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: ColorLibrary.primary),
-                        ),
-                        icon: Icon(
-                          Icons.email,
-                          color: _emailFocus.hasFocus
-                              ? ColorLibrary.primary
-                              : Colors.grey,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Form(
-                    key: _phoneKey,
-                    autovalidate: _phoneValidate,
-                    child: TextFormField(
-                      controller: _phoneCon,
-                      onTap: () {
-                        _nameFocus.unfocus();
-                        _emailFocus.unfocus();
-                        FocusScope.of(context).requestFocus(_phoneFocus);
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'No. HP',
-                        icon: Icon(
-                          Icons.phone_android,
-                          color: _phoneFocus.hasFocus
-                              ? ColorLibrary.primary
-                              : Colors.grey,
-                        ),
-                        labelStyle: TextStyle(
-                            color: _phoneFocus.hasFocus
-                                ? ColorLibrary.primary
-                                : Colors.grey),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: ColorLibrary.primary),
-                        ),
-                      ),
-                      textInputAction: TextInputAction.done,
-                      keyboardType: TextInputType.phone,
-                      validator: (value) => _validatePhone(value),
-                      focusNode: _phoneFocus,
-                      onFieldSubmitted: (term) {
-                        setState(() {
-                          _phoneValidate = true;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: EdgeInsets.only(top: 28.0),
+              AbsorbPointer(
+                absorbing: loading,
                 child: Column(
                   children: <Widget>[
-                    ButtonTheme(
-                      minWidth: double.infinity,
-                      child: RaisedButton(
-                        color: ColorLibrary.primary,
-                        child: Text(
-                          'DAFTAR',
-                          style: TextStyle(
-                              color: ColorLibrary.regularFontWhite,
-                              fontFamily: 'Work Sans',
-                              fontWeight: FontWeight.w700),
-                        ),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20.0)),
-                        onPressed: () {
-                          if (_nameKey.currentState.validate() &&
-                              _emailKey.currentState.validate() &&
-                              _phoneKey.currentState.validate()) {
-                            print(_nameKey.currentState.validate());
-                            print(_emailKey.currentState.validate());
-                            registerService(
-                                _nameCon.text, _emailCon.text, _phoneCon.text);
-                          } else {
-                            print("masuk else");
-                            print(_nameKey.currentState.validate());
-                            setState(() {
-                              _nameValidate = true;
-                              _emailValidate = true;
-                              _phoneValidate = true;
-                            });
-                          }
-                        },
+                    Container(
+                      alignment: Alignment.center,
+                      width: double.infinity,
+                      child: Text(
+                        'Daftar Baru',
+                        style: TextStyle(
+                            fontSize: 18.0,
+                            color: ColorLibrary.regularFontBlack,
+                            fontFamily: 'Work Sans'),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              Container(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Text('sudah punya akun? '),
-                    InkWell(
-                      splashColor: ColorLibrary.secondary,
-                      onTap: () {
-                        _moveToLogin();
-                      },
-                      child: Text(
-                        'Masuk',
-                        style: TextStyle(
-                            color: ColorLibrary.secondary,
-                            fontWeight: FontWeight.bold),
+                    Column(
+                      children: <Widget>[
+                        Form(
+                          key: _nameKey,
+                          autovalidate: _nameValidate,
+                          child: TextFormField(
+                            onTap: () {
+                              _emailFocus.unfocus();
+                              _phoneFocus.unfocus();
+                              FocusScope.of(context).requestFocus(_nameFocus);
+                            },
+                            controller: _nameCon,
+                            textInputAction: TextInputAction.next,
+                            keyboardType: TextInputType.text,
+                            validator: (value) => _validateName(value),
+                            focusNode: _nameFocus,
+                            onFieldSubmitted: (term) {
+                              FocusScope.of(context).requestFocus(_emailFocus);
+                              setState(() {
+                                _nameValidate = true;
+                              });
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Nama Lengkap',
+                              icon: Icon(
+                                Icons.perm_identity,
+                                color: _nameFocus.hasFocus
+                                    ? ColorLibrary.primary
+                                    : Colors.grey,
+                              ),
+                              focusedBorder: UnderlineInputBorder(
+                                borderSide:
+                                    BorderSide(color: ColorLibrary.primary),
+                              ),
+                              labelStyle: TextStyle(
+                                  color: _nameFocus.hasFocus
+                                      ? ColorLibrary.primary
+                                      : Colors.grey),
+                              suffixIcon: CircleIconButton(
+                                onHide: _nameFocus.hasFocus ? true : false,
+                                onPressed: () {
+                                  this.setState(() {
+                                    _nameCon.clear();
+                                  });
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                        Form(
+                          key: _emailKey,
+                          autovalidate: _emailValidate,
+                          child: TextFormField(
+                            controller: _emailCon,
+                            textInputAction: TextInputAction.next,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (value) => _validateEmail(value),
+                            focusNode: _emailFocus,
+                            onTap: () {
+                              _nameFocus.unfocus();
+                              _phoneFocus.unfocus();
+                              FocusScope.of(context).requestFocus(_emailFocus);
+                            },
+                            onFieldSubmitted: (term) {
+                              _fieldFocusChange(
+                                  context, _emailFocus, _phoneFocus);
+                              setState(() {
+                                _emailValidate = true;
+                              });
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Email',
+                              labelStyle: TextStyle(
+                                  color: _emailFocus.hasFocus
+                                      ? ColorLibrary.primary
+                                      : Colors.grey),
+                              focusedBorder: UnderlineInputBorder(
+                                borderSide:
+                                    BorderSide(color: ColorLibrary.primary),
+                              ),
+                              icon: Icon(
+                                Icons.email,
+                                color: _emailFocus.hasFocus
+                                    ? ColorLibrary.primary
+                                    : Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Form(
+                          key: _phoneKey,
+                          autovalidate: _phoneValidate,
+                          child: TextFormField(
+                            controller: _phoneCon,
+                            onTap: () {
+                              _nameFocus.unfocus();
+                              _emailFocus.unfocus();
+                              FocusScope.of(context).requestFocus(_phoneFocus);
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'No. HP',
+                              icon: Icon(
+                                Icons.phone_android,
+                                color: _phoneFocus.hasFocus
+                                    ? ColorLibrary.primary
+                                    : Colors.grey,
+                              ),
+                              labelStyle: TextStyle(
+                                  color: _phoneFocus.hasFocus
+                                      ? ColorLibrary.primary
+                                      : Colors.grey),
+                              focusedBorder: UnderlineInputBorder(
+                                borderSide:
+                                    BorderSide(color: ColorLibrary.primary),
+                              ),
+                            ),
+                            textInputAction: TextInputAction.done,
+                            keyboardType: TextInputType.phone,
+                            validator: (value) => _validatePhone(value),
+                            focusNode: _phoneFocus,
+                            onFieldSubmitted: (term) {
+                              setState(() {
+                                _phoneValidate = true;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: EdgeInsets.only(top: 28.0),
+                      child: Column(
+                        children: <Widget>[
+                          ButtonTheme(
+                            minWidth: double.infinity,
+                            child: RaisedButton(
+                              color: ColorLibrary.primary,
+                              child: Text(
+                                'DAFTAR',
+                                style: TextStyle(
+                                    color: ColorLibrary.regularFontWhite,
+                                    fontFamily: 'Work Sans',
+                                    fontWeight: FontWeight.w700),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20.0)),
+                              onPressed: () {
+                                if (_nameKey.currentState.validate() &&
+                                    _emailKey.currentState.validate() &&
+                                    _phoneKey.currentState.validate()) {
+                                  registerService(_nameCon.text, _emailCon.text,
+                                      _phoneCon.text);
+                                } else {
+                                  setState(() {
+                                    _nameValidate = true;
+                                    _emailValidate = true;
+                                    _phoneValidate = true;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Text('sudah punya akun? '),
+                          InkWell(
+                            splashColor: ColorLibrary.secondary,
+                            child: Text(
+                              'Masuk',
+                              style: TextStyle(
+                                  color: ColorLibrary.secondary,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            onTap: () {
+                              _moveToLogin();
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -310,7 +332,8 @@ class _RegisterPageState extends State<RegisterPage> {
     Navigator.of(context).push(PageRouteBuilder(
       maintainState: true,
       opaque: true,
-      pageBuilder: (context, _, __) => new OtpPage(phoneNumber: number, otpNumber: otp),
+      pageBuilder: (context, _, __) =>
+          new OtpPage(phoneNumber: number, otpNumber: otp),
     ));
   }
 
@@ -330,6 +353,23 @@ class _RegisterPageState extends State<RegisterPage> {
 
   registerService(String name, String email, String phone) async {
     var client = new http.Client();
+    _nameFocus.unfocus();
+    _emailFocus.unfocus();
+    _phoneFocus.unfocus();
+
+    if (mounted) {
+      setState(() {
+        loading = true;
+      });
+    }
+
+    if (phone[0] == "0") {
+      phone = "62${phone.substring(1, phone.length)}";
+    } else if (phone[0] == "+") {
+      phone = phone.substring(1, phone.length);
+    } else if (phone[0] == "8") {
+      phone = "62$phone";
+    }
 
     try {
       var request = await client.post(BaseUrl.REGISTER,
@@ -339,23 +379,37 @@ class _RegisterPageState extends State<RegisterPage> {
       dynamic data = jsonObject['data'];
       String message = jsonObject['message'];
       int status = jsonObject['status'];
-      print(request.body.toString());
-      print(data);
 
       if (status == 200) {
         _moveToOTP(phone, data.toString());
       } else if (status == 204) {
         if (data == "email already exist") {
           setState(() {
+            loading = false;
             _emailValidate = true;
           });
+          Fluttertoast.showToast(
+            msg: data,
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+          );
         } else {
           setState(() {
+            loading = false;
             _phoneValidate = true;
           });
+          Fluttertoast.showToast(
+            msg: data,
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+          );
         }
       } else {
-        print(message);
+        Fluttertoast.showToast(
+          msg: "Oops Something wrong",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+        );
       }
     } finally {
       client.close();

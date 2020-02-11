@@ -37,6 +37,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   HashMap<String, String> userData;
   String kecamatan;
   int districtID;
+  var loading = false;
 
   // final Firestore _db = Firestore.instance;
   // final FirebaseMessaging _fcm = FirebaseMessaging();
@@ -83,9 +84,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _session = new SessionManager(_prefs);
     userData = _session.getUserSession();
     String token = userData['USER_TOKEN'];
-    // String url = BaseUrl.LOCATION;
-    // String include = "?include=district_id&include=city_id&include=province_id";
     String url = BaseUrl.NEARBY;
+
+    setState(() {
+      loading = true;
+    });
     var client = new http.Client();
     String body = """{
     "district_name": "$district",
@@ -97,20 +100,31 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
-      print('data $data');
-
       if (mounted) {
-        setState(() {
-          districtID = data['district_id'];
-          _listLocation.clear();
-          int left = 0;
-          for (Map i in data['result']) {
-            ang++;
-            if (ang < 3) {
-              _listLocation.add(Location.fromJson(i));
+        if (data['status'] == 200) {
+          setState(() {
+            loading = false;
+            districtID = data['district_id'];
+            _listLocation.clear();
+
+            for (Map i in data['result']) {
+              ang++;
+              if (ang < 3) {
+                _listLocation.add(Location.fromJson(i));
+              }
             }
-          }
-        });
+          });
+        } else {
+          setState(() {
+            loading = false;
+            _listLocation.clear();
+          });
+          print(_listLocation.length);
+          Fluttertoast.showToast(
+              msg: "Oops, Check your connection",
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.BOTTOM);
+        }
       }
     }
   }
@@ -177,13 +191,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       if (mounted) {
         setState(() {
           kecamatan = firstResult.locality;
+          
+          print("kecamatan " + kecamatan.split('Sub-District')[0].trim());
           print("ini adalah region = " + kecamatan);
           _positionStream.cancel();
         });
       }
-      var length = kecamatan.length;
-      print(kecamatan.substring(9, length));
-      _fetchDataLocation(kecamatan.substring(10, length));
+      _fetchDataLocation(kecamatan.split('Sub-District')[0].trim());
     }
   }
 
@@ -204,27 +218,39 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       ),
     );
 
+    Widget _widgetLocation() {
+      if (_listLocation.length == 0) {
+        return Center(
+          child: Text(
+            "Oops.. Parking Place Not Found",
+            style: TextStyle(fontFamily: 'Work Sans'),
+          ),
+        );
+      } else {
+        return ListView.builder(
+          itemBuilder: (context, position) {
+            return new LocationRow(_listLocation[position]);
+          },
+          itemCount: _listLocation.length,
+        );
+      }
+    }
+
     Widget _middleWidget = new Container(
       height: MediaQuery.of(context).size.height / 2.5,
       child: Column(
         children: <Widget>[
           Expanded(
-            child: (_listLocation.length == 0)
-                ? Container(
-                    alignment: Alignment.topCenter,
-                    child: CircularProgressIndicator(
-                      backgroundColor: ColorLibrary.primary,
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(ColorLibrary.secondary),
-                    ),
-                  )
-                : ListView.builder(
-                    itemBuilder: (context, position) {
-                      return new LocationRow(_listLocation[position]);
-                    },
-                    itemCount: _listLocation.length,
-                  ),
-          ),
+              child: loading
+                  ? Container(
+                      alignment: Alignment.topCenter,
+                      child: CircularProgressIndicator(
+                        backgroundColor: ColorLibrary.primary,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            ColorLibrary.secondary),
+                      ),
+                    )
+                  : _widgetLocation()),
           SizedBox(
             height: 5.0,
           ),

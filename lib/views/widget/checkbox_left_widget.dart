@@ -19,11 +19,14 @@ class _ListviewLeftState extends State<ListviewLeft> {
       _child = new Row(
         children: <Widget>[
           Checkbox(
-            value: widget._lotModel.isAvailable,
+            value: (widget._lotModel.isAvailable == 1),
             onChanged: (bool value) {
               setState(() {
-                // widget._lotModel.onChange(value);
-                widget._lotModel.isAvailable = value;
+                if (value) {
+                  widget._lotModel.isAvailable = 3;
+                } else{
+                  widget._lotModel.isAvailable = 2;
+                }
               });
             },
           ),
